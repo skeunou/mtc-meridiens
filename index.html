@@ -156,12 +156,14 @@ footer{text-align:center;color:var(--mut);font-size:11px;padding:24px 18px 40px;
 .ptm-row span{font-size:14px;line-height:1.55}
 .ptm-note{margin-top:14px;font-size:11px;color:var(--mut);border-top:1px solid var(--bdr);padding-top:8px}
 </style>
+<script src="/mtc/points.js"></script>
+<script src="/lvnav.js"></script>
 </head>
 <body>
 <header>
   <div class="accentbar"></div>
   <div class="logo">MTC · MÉRIDIENS<span class="sub">Trajets · Points-command · Horloge</span></div>
-  <button class="backbtn" id="backBtn" onclick="showCatalogue()">← Retour</button>
+  <button class="backbtn" id="backBtn" onclick="lvBack()">← Retour</button>
 </header>
 
 <div class="wrap">
@@ -305,8 +307,10 @@ function openPoint(code){
     <div class="ptm-row"><b>Fonctions</b><span>${p.fn}</span></div>
     <div class="ptm-note">Localisation d'après les standards MTC — à recouper avec tes planches de formation.</div>`;
   document.getElementById("ptModal").classList.add("show");
+  lvPt=code;
+  if(!lvRestoring && window.LVNAV) LVNAV.replace();
 }
-function closePoint(){document.getElementById("ptModal").classList.remove("show");}
+function closePoint(){document.getElementById("ptModal").classList.remove("show");lvPt=null;if(window.LVNAV)LVNAV.replace();}
 
 function showDetail(id){
   const m=MERIDIENS.find(x=>x.id===id); if(!m)return;
@@ -356,16 +360,45 @@ function showDetail(id){
   document.getElementById("catalogue").style.display="none";
   document.getElementById("detail").style.display="block";
   document.getElementById("backBtn").style.display="block";
+  lvCur=id;
+  if(!lvRestoring && window.LVNAV) LVNAV.push();
   window.scrollTo(0,0);
 }
 function showCatalogue(){
+  lvCur=null;
   document.getElementById("detail").style.display="none";
   document.getElementById("catalogue").style.display="block";
   document.getElementById("backBtn").style.display="none";
+  if(!lvRestoring && window.LVNAV) LVNAV.replace();
   window.scrollTo(0,0);
 }
 buildElFilters();
 renderCatalogue();
+
+/* ============ LV : mémoire de navigation ============ */
+var lvRestoring=false, lvCur=null, lvPt=null;
+function lvBack(){ if(window.LVNAV){LVNAV.back(); setTimeout(function(){ if(lvCur) showCatalogue(); },120);} else showCatalogue(); }
+if(window.LVNAV){
+  LVNAV.init({
+    app:"mtc-meridiens",
+    snapshot:function(){
+      return { id:lvCur, el:(typeof activeEl!=="undefined")?activeEl:null,
+               q:(document.getElementById("search")||{}).value||"", pt:lvPt };
+    },
+    restore:function(s){
+      if(!s)return;
+      lvRestoring=true;
+      try{
+        if(s.el){ activeEl=s.el; }
+        var sb=document.getElementById("search"); if(sb) sb.value=s.q||"";
+        buildElFilters(); renderCatalogue();
+        if(s.id) showDetail(s.id); else showCatalogue();
+        if(s.pt) openPoint(s.pt);
+      }catch(e){}
+      lvRestoring=false;
+    }
+  });
+}
 </script>
 </body>
 </html>
