@@ -287,7 +287,7 @@ function renderCatalogue(){
 
 function sec(ico,title,bodyHTML,open){
   return `<div class="sec ${open?'open':''}">
-    <div class="sh" onclick="this.parentNode.classList.toggle('open')">
+    <div class="sh" onclick="lvToggleSec(this)">
       <span class="ico">${ico}</span><h3>${title}</h3><span class="tog">▶</span>
     </div>
     <div class="body">${bodyHTML}</div>
@@ -376,6 +376,9 @@ buildElFilters();
 renderCatalogue();
 
 /* ============ LV : mémoire de navigation ============ */
+function lvToggleSec(el){ el.parentNode.classList.toggle("open"); if(!lvRestoring&&window.LVNAV)LVNAV.replace(); }
+function lvSecState(){ var s=[],e=document.querySelectorAll("#detail .sec"); for(var i=0;i<e.length;i++){ if(e[i].classList.contains("open"))s.push(i); } return s; }
+function lvSecApply(l){ if(!l)return; var e=document.querySelectorAll("#detail .sec"); for(var i=0;i<e.length;i++){ e[i].classList.toggle("open", l.indexOf(i)!==-1); } }
 var lvRestoring=false, lvCur=null, lvPt=null;
 function lvBack(){ if(window.LVNAV){LVNAV.back(); setTimeout(function(){ if(lvCur) showCatalogue(); },120);} else showCatalogue(); }
 if(window.LVNAV){
@@ -383,7 +386,8 @@ if(window.LVNAV){
     app:"mtc-meridiens",
     snapshot:function(){
       return { id:lvCur, el:(typeof activeEl!=="undefined")?activeEl:null,
-               q:(document.getElementById("search")||{}).value||"", pt:lvPt };
+               q:(document.getElementById("search")||{}).value||"", pt:lvPt,
+               sec:lvCur?lvSecState():null };
     },
     restore:function(s){
       if(!s)return;
@@ -393,6 +397,7 @@ if(window.LVNAV){
         var sb=document.getElementById("search"); if(sb) sb.value=s.q||"";
         buildElFilters(); renderCatalogue();
         if(s.id) showDetail(s.id); else showCatalogue();
+        if(s.id && s.sec) lvSecApply(s.sec);
         if(s.pt) openPoint(s.pt);
       }catch(e){}
       lvRestoring=false;
